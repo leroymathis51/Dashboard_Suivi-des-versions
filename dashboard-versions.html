@@ -1,0 +1,566 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="vitibot-api-url" content="">
+  <title>VitiBot · Qualité des versions</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: light-dark(#edf2f7, #0b111a);
+      --shell: light-dark(#f7f9fc, #111925);
+      --surface: light-dark(#ffffff, #182231);
+      --surface-2: light-dark(#eef3f8, #222e3d);
+      --text: light-dark(#172033, #f4f7fb);
+      --muted: light-dark(#657187, #aab6c8);
+      --border: light-dark(#d9e1eb, #2d3b4d);
+      --blue: light-dark(#1f64d8, #76a8ff);
+      --cyan: light-dark(#007f96, #55d4e8);
+      --purple: light-dark(#7048d7, #b89cff);
+      --green: light-dark(#087f5b, #59d2a6);
+      --red: light-dark(#c23d4f, #ff8192);
+      --amber: light-dark(#9b6500, #ffc568);
+      --shadow: light-dark(0 18px 50px rgba(28,43,74,.12), 0 22px 60px rgba(0,0,0,.34));
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; color: var(--text); background: var(--bg); }
+    button, input, select { font: inherit; }
+    button { color: inherit; cursor: pointer; }
+    .app { min-height: 100vh; background: var(--shell); }
+    .topbar { position: sticky; top: 0; z-index: 5; display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 68px; padding: 12px 24px; background: color-mix(in srgb, var(--surface) 94%, transparent); border-bottom: 1px solid var(--border); backdrop-filter: blur(10px); }
+    .brand { display: flex; align-items: center; gap: 11px; }
+    .logo { display: grid; place-items: center; width: 38px; height: 38px; color: var(--blue); background: color-mix(in srgb, var(--blue) 12%, var(--surface)); border-radius: 10px; font-weight: 800; }
+    .brand strong, .brand small { display: block; }
+    .brand small { color: var(--muted); }
+    .status-wrap { display: flex; align-items: center; gap: 10px; }
+    .status { color: var(--muted); font-size: 12px; }
+    .status::before { content: ""; display: inline-block; width: 8px; height: 8px; margin-right: 7px; border-radius: 50%; background: var(--amber); }
+    .status.live::before { background: var(--green); }
+    .status.error::before { background: var(--red); }
+    .icon-button, .secondary-button, .tab, .metric-button, .change-button { border: 0; border-radius: 8px; }
+    .icon-button, .secondary-button { min-height: 36px; padding: 7px 11px; background: var(--surface-2); }
+    .layout { display: grid; grid-template-columns: 116px minmax(0, 1fr); }
+    .sidebar { position: sticky; top: 68px; align-self: start; min-height: calc(100vh - 68px); padding: 18px 10px; background: var(--surface); border-right: 1px solid var(--border); }
+    .tab { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; min-height: 70px; margin-bottom: 8px; padding: 8px; color: var(--muted); background: transparent; }
+    .tab.active { color: var(--blue); background: color-mix(in srgb, var(--blue) 11%, var(--surface)); font-weight: 700; }
+    .tab b { font-size: 20px; line-height: 1; }
+    .tab span { margin-top: 7px; font-size: 12px; }
+    main { min-width: 0; padding: 18px; }
+    .filters, .panel, .channel-card, .compare-bar, .compare-card, .verdict { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; }
+    .filters { margin-bottom: 18px; padding: 14px; }
+    .filters-head, .heading, .panel-head, .filter-summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .filters-head { margin-bottom: 12px; }
+    .filters-head button { color: var(--blue); background: transparent; border: 0; }
+    .filter-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+    label { display: flex; flex-direction: column; gap: 5px; color: var(--muted); font-size: 12px; font-weight: 650; }
+    input, select { width: 100%; min-height: 40px; padding: 8px 10px; color: var(--text); background: var(--shell); border: 1px solid var(--border); border-radius: 8px; }
+    .label-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .label-row small { color: var(--blue); }
+    .filter-summary { align-items: flex-start; margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--border); }
+    .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+    .chip, .badge { display: inline-flex; align-items: center; padding: 4px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; }
+    .chip { color: var(--blue); background: color-mix(in srgb, var(--blue) 11%, transparent); }
+    .source-note { max-width: 410px; color: var(--muted); text-align: right; font-size: 11px; line-height: 1.4; }
+    .heading { align-items: flex-end; margin: 0 2px 14px; }
+    h1 { margin: 0 0 4px; font-size: 23px; line-height: 1.2; }
+    h2 { margin: 0 0 3px; font-size: 15px; }
+    p { margin: 0; }
+    .heading p, .panel-head p { color: var(--muted); font-size: 12px; }
+    .segmented { display: flex; padding: 3px; background: var(--surface-2); border-radius: 9px; }
+    .metric-button, .change-button { padding: 7px 10px; color: var(--muted); background: transparent; }
+    .metric-button.active, .change-button.active { color: var(--text); background: var(--surface); box-shadow: 0 1px 5px color-mix(in srgb, var(--text) 10%, transparent); }
+    .channel-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-bottom: 12px; }
+    .channel-card { position: relative; overflow: hidden; padding: 13px; }
+    .channel-card::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 3px; background: var(--channel); }
+    .channel-card > div { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .channel-card span, .channel-card small { color: var(--muted); font-size: 11px; }
+    .channel-card strong { display: block; margin: 7px 0 3px; font-size: 18px; }
+    .badge.good { color: var(--green); background: color-mix(in srgb, var(--green) 12%, transparent); }
+    .badge.bad { color: var(--red); background: color-mix(in srgb, var(--red) 12%, transparent); }
+    .badge.warn { color: var(--amber); background: color-mix(in srgb, var(--amber) 12%, transparent); }
+    .badge.neutral { color: var(--muted); background: var(--surface-2); }
+    .grid { display: grid; gap: 12px; }
+    .overview-grid { grid-template-columns: minmax(0, 1.45fr) minmax(260px, .8fr); }
+    .panel { min-width: 0; padding: 15px; }
+    .panel-head { align-items: flex-start; margin-bottom: 13px; }
+    .method { color: var(--muted); font-size: 10px; text-align: right; }
+    .version-chart { display: flex; align-items: stretch; gap: 10px; min-height: 255px; padding: 12px 10px 40px 48px; background: repeating-linear-gradient(to bottom, transparent 0, transparent calc(25% - 1px), var(--border) 25%); border-left: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+    .bar-wrap { position: relative; display: flex; flex: 1; align-items: flex-end; justify-content: center; min-width: 60px; }
+    .bar { width: min(58px, 72%); min-height: 3px; border-radius: 7px 7px 0 0; background: var(--bar); transition: height .22s ease; }
+    .bar-value { position: absolute; left: 50%; transform: translateX(-50%); white-space: nowrap; font-size: 12px; font-weight: 750; }
+    .bar-label, .bar-channel { position: absolute; left: 50%; transform: translateX(-50%); white-space: nowrap; color: var(--muted); }
+    .bar-label { top: calc(100% + 8px); font-size: 11px; }
+    .bar-channel { top: calc(100% + 24px); font-size: 9px; }
+    .search { margin-bottom: 10px; }
+    .code-row { display: grid; grid-template-columns: 60px minmax(0, 1fr) 50px; align-items: center; gap: 8px; margin: 11px 0; }
+    code { color: var(--text); font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 12px; }
+    .track { height: 8px; overflow: hidden; background: var(--surface-2); border-radius: 999px; }
+    .fill, .ref-fill, .target-fill { height: 100%; border-radius: inherit; }
+    .fill { background: var(--blue); }
+    .ref-fill { background: var(--cyan); }
+    .target-fill { background: var(--purple); }
+    .code-row b, .diff-row > span { text-align: right; font-size: 11px; font-variant-numeric: tabular-nums; }
+    .coverage-item { display: grid; grid-template-columns: 65px minmax(0, 1fr) 135px; align-items: center; gap: 10px; margin: 12px 0; }
+    .coverage-item span { color: var(--muted); text-align: right; font-size: 11px; }
+    .attention { display: flex; gap: 10px; margin: 12px 0; }
+    .attention-mark { display: grid; flex: 0 0 30px; place-items: center; height: 30px; color: var(--amber); background: color-mix(in srgb, var(--amber) 12%, transparent); border-radius: 8px; font-weight: 800; }
+    .attention strong, .attention small { display: block; }
+    .attention small { margin-top: 3px; color: var(--muted); font-size: 11px; line-height: 1.4; }
+    .span-all { grid-column: 1 / -1; }
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    th, td { padding: 10px 8px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    th { color: var(--muted); font-size: 11px; font-weight: 650; }
+    .compare-bar { display: grid; grid-template-columns: 1fr 48px 1fr auto; align-items: end; gap: 12px; margin-bottom: 12px; padding: 14px; }
+    .versus { display: grid; place-items: center; min-height: 40px; color: var(--muted); font-weight: 800; }
+    .checkbox { display: flex; flex-direction: row; align-items: center; min-height: 40px; white-space: nowrap; }
+    .checkbox input { width: 18px; min-height: 18px; }
+    .verdict { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 12px; padding: 13px 15px; }
+    .verdict.good { border-left: 4px solid var(--green); }
+    .verdict.bad { border-left: 4px solid var(--red); }
+    .verdict span { color: var(--muted); font-size: 12px; }
+    .compare-kpis { display: grid; grid-template-columns: 1fr .8fr 1fr; gap: 10px; margin-bottom: 12px; }
+    .compare-card { padding: 14px; }
+    .compare-card > span, .compare-card small, .compare-card p { color: var(--muted); font-size: 11px; }
+    .compare-card h2 { margin: 5px 0 7px; }
+    .compare-card > strong { display: block; margin: 5px 0 2px; font-size: 25px; font-variant-numeric: tabular-nums; }
+    .compare-card p { margin-top: 8px; }
+    .compare-grid { grid-template-columns: 1fr 1.05fr; }
+    .legend { display: flex; gap: 8px; align-items: center; color: var(--muted); font-size: 10px; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; }
+    .dot.ref { background: var(--cyan); }
+    .dot.target { background: var(--purple); }
+    .diff-row { display: grid; grid-template-columns: 60px minmax(0, 1fr) 104px; align-items: center; gap: 9px; margin: 11px 0; }
+    .bar-pair { display: grid; gap: 4px; }
+    .change-tabs { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px; }
+    .empty { display: grid; place-items: center; min-height: 180px; color: var(--muted); text-align: center; }
+    .hidden { display: none !important; }
+    .loading { opacity: .62; pointer-events: none; }
+    .error-message { margin-bottom: 12px; padding: 10px 12px; color: var(--red); background: color-mix(in srgb, var(--red) 9%, transparent); border-radius: 8px; font-size: 12px; }
+    @media (max-width: 900px) {
+      .filter-grid { grid-template-columns: 1fr 1fr; }
+      .channel-grid { grid-template-columns: 1fr 1fr; }
+      .overview-grid, .compare-grid { grid-template-columns: 1fr; }
+      .compare-bar { grid-template-columns: 1fr 40px 1fr; }
+      .compare-bar .checkbox { grid-column: 1 / -1; }
+    }
+    @media (max-width: 680px) {
+      .topbar { align-items: flex-start; flex-direction: column; }
+      .status-wrap { width: 100%; justify-content: space-between; }
+      .layout { grid-template-columns: 1fr; }
+      .sidebar { position: static; display: flex; min-height: auto; padding: 8px 12px; border-right: 0; border-bottom: 1px solid var(--border); }
+      .tab { width: auto; min-height: 44px; margin: 0 6px 0 0; padding: 7px 12px; flex-direction: row; gap: 7px; }
+      .tab span { margin: 0; }
+      main { padding: 12px; }
+      .filter-grid, .channel-grid, .compare-kpis, .compare-bar { grid-template-columns: 1fr; }
+      .filter-summary, .heading, .verdict { align-items: flex-start; flex-direction: column; }
+      .source-note { max-width: none; text-align: left; }
+      .version-chart { overflow-x: auto; justify-content: flex-start; }
+      .bar-wrap { flex: 0 0 78px; }
+      .coverage-item { grid-template-columns: 62px 1fr; }
+      .coverage-item span { grid-column: 1 / -1; text-align: left; }
+      .versus { min-height: auto; }
+    }
+    @media (prefers-reduced-motion: reduce) { .bar { transition: none; } }
+  </style>
+</head>
+<body>
+  <div class="app" id="app">
+    <header class="topbar">
+      <div class="brand"><span class="logo">V</span><div><strong>Robot Data</strong><small>Qualité des versions</small></div></div>
+      <div class="status-wrap"><span class="status" id="dataStatus">Chargement…</span><button class="icon-button" id="refreshButton" type="button">Actualiser</button></div>
+    </header>
+
+    <div class="layout">
+      <nav class="sidebar" aria-label="Navigation principale">
+        <button class="tab active" data-tab="overview" type="button" aria-selected="true"><b>◫</b><span>Pilotage</span></button>
+        <button class="tab" data-tab="compare" type="button" aria-selected="false"><b>⇄</b><span>Comparaison</span></button>
+      </nav>
+
+      <main>
+        <section class="filters" aria-label="Filtres globaux">
+          <div class="filters-head"><strong>Filtres</strong><button id="resetButton" type="button">Réinitialiser</button></div>
+          <div class="filter-grid">
+            <label>Période
+              <select id="period"><option value="30">30 derniers jours</option><option value="90" selected>90 derniers jours</option><option value="180">180 derniers jours</option><option value="custom">Dates précises</option></select>
+            </label>
+            <label>Du<input id="dateFrom" type="date"></label>
+            <label>Au<input id="dateTo" type="date"></label>
+            <label>Canal
+              <select id="channel"><option value="all">Tous les canaux</option><option>Standard</option><option>Avancée</option><option>Beta</option><option>Alpha</option><option value="Non renseigné">Non renseigné</option></select>
+            </label>
+            <label>Version de début<select id="rangeStart"></select></label>
+            <label>Version de fin<select id="rangeEnd"></select></label>
+            <label><span class="label-row">Robot <small id="robotCount">0 disponible</small></span><input id="robot" type="search" list="robotList" placeholder="Tous les robots ou rechercher…"><datalist id="robotList"></datalist></label>
+            <label><span class="label-row">Parcelle <small id="parcelCount">0 disponible</small></span><input id="parcel" type="search" list="parcelList" placeholder="Toutes les parcelles ou rechercher…"><datalist id="parcelList"></datalist></label>
+          </div>
+          <div class="filter-summary"><div class="chips" id="chips"></div><span class="source-note" id="sourceNote"></span></div>
+        </section>
+
+        <div class="error-message hidden" id="errorMessage" role="alert"></div>
+
+        <section id="overviewPanel">
+          <div class="heading">
+            <div><h1>Pilotage des versions</h1><p>Comparer la fiabilité en tenant compte de l’exposition réelle.</p></div>
+            <div class="segmented" aria-label="Indicateur affiché"><button class="metric-button active" data-metric="rate" type="button">Taux / 100 h</button><button class="metric-button" data-metric="count" type="button">Volume</button></div>
+          </div>
+          <div class="channel-grid" id="channelCards"></div>
+          <div class="grid overview-grid">
+            <section class="panel">
+              <div class="panel-head"><div><h2>Performance par version</h2><p id="chartSubtitle">Erreurs dédupliquées pour 100 h autonomes</p></div><span class="method">Robot + code + fenêtre de 5 min</span></div>
+              <div class="version-chart" id="versionChart" role="img" aria-label="Performance des versions"></div>
+            </section>
+            <section class="panel">
+              <div class="panel-head"><div><h2>Top codes erreurs</h2><p id="topContext"></p></div></div>
+              <label class="search">Rechercher un code<input id="codeSearch" type="search" placeholder="Ex. e3073"></label>
+              <div id="codeRanking"></div>
+            </section>
+            <section class="panel">
+              <div class="panel-head"><div><h2>Couverture de mesure</h2><p>Contexte nécessaire avant de conclure</p></div></div>
+              <div id="coverage"></div>
+            </section>
+            <section class="panel">
+              <div class="panel-head"><div><h2>Points d’attention</h2><p>Signaux à interpréter avec prudence</p></div></div>
+              <div id="attention"></div>
+            </section>
+            <section class="panel span-all">
+              <div class="panel-head"><div><h2>Cycle de vie des versions</h2><p>Nouvelles versions détectées automatiquement, anciennes conservées dans l’historique</p></div><span class="badge good" id="syncBadge">Synchronisation</span></div>
+              <div class="table-wrap"><table><thead><tr><th>Version</th><th>Canal observé</th><th>Dernière activité</th><th>Robots</th><th>Parcelles</th><th>Présente sur la période</th><th>État</th></tr></thead><tbody id="lifecycle"></tbody></table></div>
+            </section>
+          </div>
+        </section>
+
+        <section id="comparePanel" class="hidden">
+          <div class="heading"><div><h1>Comparaison version à version</h1><p>Identifier les erreurs apparues, disparues, améliorées ou amplifiées.</p></div></div>
+          <section class="compare-bar">
+            <label>Version de référence<select id="baseVersion"></select></label><div class="versus">VS</div><label>Version cible<select id="targetVersion"></select></label>
+            <label class="checkbox"><input id="commonOnly" type="checkbox"> Codes communs uniquement</label>
+          </section>
+          <div class="verdict" id="verdict" aria-live="polite"></div>
+          <div class="compare-kpis">
+            <article class="compare-card"><span>Référence</span><h2 id="baseTitle"></h2><strong id="baseRate"></strong><small>erreurs / 100 h</small><p id="baseCoverage"></p></article>
+            <article class="compare-card"><span>Évolution normalisée</span><strong id="mainDelta"></strong><small id="deltaLabel"></small><p id="confidence"></p></article>
+            <article class="compare-card"><span>Cible</span><h2 id="targetTitle"></h2><strong id="targetRate"></strong><small>erreurs / 100 h</small><p id="targetCoverage"></p></article>
+          </div>
+          <div class="grid compare-grid">
+            <section class="panel"><div class="panel-head"><div><h2>Écart par code erreur</h2><p>Taux pour 100 h · référence puis cible</p></div><div class="legend"><span class="dot ref"></span>Référence <span class="dot target"></span>Cible</div></div><div id="diffBars"></div></section>
+            <section class="panel"><div class="panel-head"><div><h2>Changements de comportement</h2><p>Lecture directe entre les deux versions</p></div></div><div class="change-tabs"><button class="change-button active" data-change="all">Tous</button><button class="change-button" data-change="new">Apparus</button><button class="change-button" data-change="gone">Disparus</button><button class="change-button" data-change="worse">Dégradés</button><button class="change-button" data-change="better">Améliorés</button></div><div class="table-wrap"><table><thead><tr><th>Code</th><th>Réf.</th><th>Cible</th><th>Écart</th><th>Signal</th></tr></thead><tbody id="changeTable"></tbody></table></div></section>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <script>
+  (() => {
+    "use strict";
+
+    /*
+      Connexion live : renseigner uniquement l'URL du proxy dans la balise meta
+      "vitibot-api-url". La clé Kibana doit rester dans les secrets du proxy.
+
+      GET {apiUrl}/filters
+      -> { "robots": ["bks70"], "parcels": ["Parcelle A"] }
+
+      GET {apiUrl}/dashboard?from=YYYY-MM-DD&to=YYYY-MM-DD&robot=&parcel=
+      -> {
+           "updatedAt": "2026-10-06T16:15:00Z",
+           "versions": [{
+             "name":"v19.5.1", "channel":"Beta", "hours":86.5,
+             "errors":30, "robots":10, "parcels":31,
+             "lastSeen":"2026-10-06T15:40:00Z",
+             "codes":{"e3073":10,"e3542":4}
+           }]
+         }
+
+      Le tableau "versions" doit contenir l'inventaire complet, y compris une
+      version historique avec hours=0 lorsqu'elle n'est pas présente sur la période.
+    */
+
+    const DAY = 86400000;
+    const REFRESH_MS = 5 * 60 * 1000;
+    const queryApi = new URLSearchParams(location.search).get("api");
+    const metaApi = document.querySelector('meta[name="vitibot-api-url"]').content.trim();
+    const API_URL = (queryApi || metaApi).replace(/\/$/, "");
+    const colors = { Standard: "var(--blue)", "Avancée": "var(--cyan)", Beta: "var(--purple)", Alpha: "var(--amber)", "Non renseigné": "var(--muted)" };
+
+    const demoByPeriod = {
+      30: [
+        {name:"v15.12.4",channel:"Standard",hours:1185.21,robots:43,parcels:328,errors:644,lastSeen:"2026-10-06T14:18:00Z",codes:{e3073:190,e3136:110,e2139:96,e3070:46,e3085:27,e2155:18,e2006:17,e2047:12}},
+        {name:"v17.6.8",channel:"Avancée",hours:440.83,robots:24,parcels:153,errors:253,lastSeen:"2026-10-06T15:40:00Z",codes:{e3073:122,e2141:17,e3301:17,e3136:16,e3070:15,e2168:11,e3212:7,e3051:5}},
+        {name:"v19.3.0",channel:"Alpha",hours:0,robots:0,parcels:0,errors:0,lastSeen:"2026-07-23T10:00:00Z",codes:{}},
+        {name:"v19.3.6",channel:"Beta",hours:24.53,robots:5,parcels:15,errors:24,lastSeen:"2026-10-06T12:02:00Z",codes:{e2168:12,e3073:8,e2048:1,e3085:1,e3111:1,e3136:1}},
+        {name:"v19.5.1",channel:"Beta",hours:86.50,robots:10,parcels:31,errors:30,lastSeen:"2026-10-06T16:01:00Z",codes:{e3073:10,e3542:4,e2166:3,e3301:3,e3070:2,e2006:2,e2114:1,e3136:1}}
+      ],
+      90: [
+        {name:"v15.12.4",channel:"Standard",hours:2799.97,robots:66,parcels:647,errors:1399,lastSeen:"2026-10-06T14:18:00Z",codes:{e3073:364,e2139:242,e3136:150,e3070:116,e3085:111,e2141:39,e2047:27,e2024:13}},
+        {name:"v17.6.8",channel:"Avancée",hours:440.83,robots:24,parcels:153,errors:253,lastSeen:"2026-10-06T15:40:00Z",codes:{e3073:122,e2141:17,e3301:17,e3136:16,e3070:15,e2168:11,e3212:7,e3051:5}},
+        {name:"v19.3.0",channel:"Alpha",hours:43.91,robots:5,parcels:17,errors:26,lastSeen:"2026-07-23T10:00:00Z",codes:{e2141:16,e3073:3,e2172:3,e2006:2,e2032:1,e3302:1}},
+        {name:"v19.3.6",channel:"Beta",hours:24.53,robots:5,parcels:15,errors:24,lastSeen:"2026-10-06T12:02:00Z",codes:{e2168:12,e3073:8,e2048:1,e3085:1,e3111:1,e3136:1}},
+        {name:"v19.5.1",channel:"Beta",hours:86.50,robots:10,parcels:31,errors:30,lastSeen:"2026-10-06T16:01:00Z",codes:{e3073:10,e3542:4,e2166:3,e3301:3,e3070:2,e2006:2,e2114:1,e3136:1}}
+      ],
+      180: [
+        {name:"v15.12.4",channel:"Standard",hours:2874.02,robots:66,parcels:662,errors:1468,lastSeen:"2026-10-06T14:18:00Z",codes:{e3073:395,e2139:247,e3136:160,e3070:121,e3085:113,e2141:43,e2047:27,e2024:13}},
+        {name:"v17.6.8",channel:"Avancée",hours:440.83,robots:24,parcels:153,errors:253,lastSeen:"2026-10-06T15:40:00Z",codes:{e3073:122,e2141:17,e3301:17,e3136:16,e3070:15,e2168:11,e3212:7,e3051:5}},
+        {name:"v19.3.0",channel:"Alpha",hours:43.91,robots:5,parcels:17,errors:26,lastSeen:"2026-07-23T10:00:00Z",codes:{e2141:16,e3073:3,e2172:3,e2006:2,e2032:1,e3302:1}},
+        {name:"v19.3.6",channel:"Beta",hours:24.53,robots:5,parcels:15,errors:24,lastSeen:"2026-10-06T12:02:00Z",codes:{e2168:12,e3073:8,e2048:1,e3085:1,e3111:1,e3136:1}},
+        {name:"v19.5.1",channel:"Beta",hours:86.50,robots:10,parcels:31,errors:30,lastSeen:"2026-10-06T16:01:00Z",codes:{e3073:10,e3542:4,e2166:3,e3301:3,e3070:2,e2006:2,e2114:1,e3136:1}}
+      ]
+    };
+    const demoFilters = {
+      robots:["bks70","bkl188","bkl189","bks178","bkl63","bkl161","bks217","bks163","bkl89","bks76","bkl147","bkl72"],
+      parcels:["MMT_07_Syrah_2023_SudOvest","REY_0009_Syrah_Nord","TAR_16_Les_Sables","MMT_18_Syrah_2020_Cimolo","MMT_24_Cantina_2026_4","MMT_05_Viogner_Nord_Est_2023","AGR_0013_Agra_Pod_Halou_Novy","DSJ_0007_Viognier_nord_sud_vifo_150","CAM_0021_Lapeyre","vmpj_06_42","MMT_21_Roycello_2026","MMT_19_Syrah_2017_pozzelle"]
+    };
+
+    const $ = id => document.getElementById(id);
+    const state = { tab:"overview", period:"90", from:"", to:"", channel:"all", rangeStart:"", rangeEnd:"", robot:"", parcel:"", metric:"rate", base:"", target:"", codeSearch:"", commonOnly:false, change:"all", versions:[], robots:[], parcels:[], live:false, updatedAt:null };
+    let reloadTimer;
+    let fetchController;
+
+    const fr = (n, digits=1) => Number(n || 0).toLocaleString("fr-FR", {minimumFractionDigits:digits, maximumFractionDigits:digits});
+    const esc = value => String(value ?? "").replace(/[&<>'"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"}[c]));
+    const versionParts = value => String(value).replace(/^v/i, "").split(/[.-]/).map(x => Number(x) || 0);
+    const versionCompare = (a,b) => { const x=versionParts(a.name || a), y=versionParts(b.name || b); for(let i=0;i<Math.max(x.length,y.length);i++){ if((x[i]||0)!==(y[i]||0)) return (x[i]||0)-(y[i]||0); } return 0; };
+    const rate = v => v && v.hours > 0 ? v.errors * 100 / v.hours : 0;
+    const codeRate = (v, code) => v && v.hours > 0 ? (v.codes?.[code] || 0) * 100 / v.hours : 0;
+    const byName = name => state.versions.find(v => v.name === name);
+    const todayIso = () => new Date().toISOString().slice(0,10);
+    const daysBetween = (a,b) => Math.max(1, Math.round((new Date(b) - new Date(a)) / DAY) + 1);
+    const selectedDemoPeriod = () => { const days=daysBetween(state.from,state.to); return days<=60?30:days<=135?90:180; };
+    const formatDate = value => value ? new Intl.DateTimeFormat("fr-FR", {dateStyle:"short"}).format(new Date(value)) : "—";
+    const formatDateTime = value => value ? new Intl.DateTimeFormat("fr-FR", {dateStyle:"short",timeStyle:"short"}).format(new Date(value)) : "—";
+
+    function setPresetDates(days) {
+      const to = new Date();
+      const from = new Date(to.getTime() - (Number(days) - 1) * DAY);
+      state.to = to.toISOString().slice(0,10);
+      state.from = from.toISOString().slice(0,10);
+      $("dateFrom").value = state.from;
+      $("dateTo").value = state.to;
+    }
+
+    function normalizeVersion(raw) {
+      return {
+        name:String(raw.name || raw.version || "Version inconnue"),
+        channel:String(raw.channel || "Non renseigné"),
+        hours:Number(raw.hours || 0), errors:Number(raw.errors || 0),
+        robots:Number(raw.robots || 0), parcels:Number(raw.parcels ?? raw.maps ?? 0),
+        lastSeen:raw.lastSeen || null, codes:raw.codes && typeof raw.codes === "object" ? raw.codes : {}
+      };
+    }
+
+    function setStatus(kind, label) {
+      $("dataStatus").className = `status ${kind || ""}`;
+      $("dataStatus").textContent = label;
+    }
+
+    async function fetchJson(path, params={}) {
+      const url = new URL(`${API_URL}${path}`);
+      Object.entries(params).forEach(([key,value]) => { if(value) url.searchParams.set(key,value); });
+      const response = await fetch(url, { signal:fetchController?.signal, headers:{"Accept":"application/json"} });
+      if(!response.ok) throw new Error(`API ${response.status}`);
+      return response.json();
+    }
+
+    async function loadFilters() {
+      if(!API_URL) { state.robots=demoFilters.robots; state.parcels=demoFilters.parcels; renderFilterLists(); return; }
+      try {
+        const result = await fetchJson("/filters");
+        state.robots = Array.isArray(result.robots) ? result.robots : [];
+        state.parcels = Array.isArray(result.parcels) ? result.parcels : (Array.isArray(result.maps) ? result.maps : []);
+      } catch(error) {
+        state.robots=demoFilters.robots; state.parcels=demoFilters.parcels;
+        showError("Les listes complètes n’ont pas pu être chargées. Les suggestions d’exemple restent disponibles.");
+      }
+      renderFilterLists();
+    }
+
+    async function loadDashboard({manual=false}={}) {
+      clearTimeout(reloadTimer);
+      fetchController?.abort();
+      fetchController = new AbortController();
+      document.querySelector("main").classList.add("loading");
+      $("errorMessage").classList.add("hidden");
+      try {
+        if(API_URL) {
+          setStatus("", "Synchronisation Kibana…");
+          const result = await fetchJson("/dashboard", {from:state.from,to:state.to,robot:state.robot,parcel:state.parcel});
+          state.versions = (result.versions || []).map(normalizeVersion).sort(versionCompare);
+          state.updatedAt = result.updatedAt || new Date().toISOString();
+          state.live = true;
+          setStatus("live", `Kibana à jour · ${formatDateTime(state.updatedAt)}`);
+        } else {
+          state.versions = demoByPeriod[selectedDemoPeriod()].map(normalizeVersion).sort(versionCompare);
+          state.updatedAt = "2026-10-06T16:15:00Z";
+          state.live = false;
+          setStatus("", "Données d’exemple · connexion API non configurée");
+        }
+        syncVersionSelections();
+        render();
+      } catch(error) {
+        if(error.name === "AbortError") return;
+        state.live = false;
+        state.versions = demoByPeriod[selectedDemoPeriod()].map(normalizeVersion).sort(versionCompare);
+        syncVersionSelections();
+        render();
+        setStatus("error", "API indisponible · données d’exemple affichées");
+        showError(`Connexion au proxy impossible (${error.message}). Aucun secret Kibana ne doit être ajouté dans ce fichier.`);
+      } finally {
+        document.querySelector("main").classList.remove("loading");
+        reloadTimer = setTimeout(() => loadDashboard(), REFRESH_MS);
+        if(manual) $("refreshButton").blur();
+      }
+    }
+
+    function showError(message) { $("errorMessage").textContent=message; $("errorMessage").classList.remove("hidden"); }
+
+    function renderFilterLists() {
+      $("robotList").innerHTML = state.robots.map(x=>`<option value="${esc(x)}"></option>`).join("");
+      $("parcelList").innerHTML = state.parcels.map(x=>`<option value="${esc(x)}"></option>`).join("");
+      $("robotCount").textContent = `${state.robots.length.toLocaleString("fr-FR")} disponibles`;
+      $("parcelCount").textContent = `${state.parcels.length.toLocaleString("fr-FR")} disponibles`;
+    }
+
+    function syncVersionSelections() {
+      const names = state.versions.map(v=>v.name);
+      if(!names.length) { state.rangeStart=state.rangeEnd=state.base=state.target=""; return; }
+      if(!names.includes(state.rangeStart)) state.rangeStart=names[0];
+      if(!names.includes(state.rangeEnd)) state.rangeEnd=names.at(-1);
+      if(!names.includes(state.base)) state.base=names[Math.max(0,names.length-2)];
+      if(!names.includes(state.target)) state.target=names.at(-1);
+      const options = selected => state.versions.map(v=>`<option value="${esc(v.name)}" ${v.name===selected?"selected":""}>${esc(v.name)} · ${esc(v.channel)}</option>`).join("");
+      $("rangeStart").innerHTML=options(state.rangeStart); $("rangeEnd").innerHTML=options(state.rangeEnd);
+      $("baseVersion").innerHTML=options(state.base); $("targetVersion").innerHTML=options(state.target);
+    }
+
+    function visibleVersions() {
+      const start=state.versions.findIndex(v=>v.name===state.rangeStart), end=state.versions.findIndex(v=>v.name===state.rangeEnd);
+      return state.versions.filter((v,i)=>i>=Math.min(start,end) && i<=Math.max(start,end) && (state.channel==="all" || v.channel===state.channel));
+    }
+
+    function renderChips() {
+      const chips=[`${formatDate(state.from)} → ${formatDate(state.to)}`,state.channel==="all"?"Tous canaux":state.channel,state.rangeStart&&state.rangeEnd?`${state.rangeStart} → ${state.rangeEnd}`:"Aucune version"];
+      if(state.robot) chips.push(state.robot); if(state.parcel) chips.push(state.parcel);
+      $("chips").innerHTML=chips.map(x=>`<span class="chip">${esc(x)}</span>`).join("");
+      $("sourceNote").textContent = state.live ? "Filtres et dates envoyés au proxy sécurisé. Actualisation automatique toutes les 5 minutes." : `Mode exemple : la plage sélectionnée utilise l’échantillon ${selectedDemoPeriod()} jours le plus proche. Renseignez l’URL du proxy pour obtenir les données exactes.`;
+    }
+
+    function renderChannels() {
+      const cards=["Standard","Avancée","Beta","Alpha"].map(channel=>{
+        const matches=state.versions.filter(v=>v.channel===channel).sort(versionCompare), latest=matches.at(-1);
+        const isHistorical=latest && latest.lastSeen && (Date.now()-new Date(latest.lastSeen).getTime())>45*DAY;
+        return `<article class="channel-card" style="--channel:${colors[channel]}"><div><span>${channel}</span><span class="badge ${latest?(isHistorical?"warn":"good"):"neutral"}">${latest?(isHistorical?"Historique":"Actif"):"Non observé"}</span></div><strong>${latest?esc(latest.name):"—"}</strong><small>${latest?`${latest.robots} robots · ${latest.parcels} parcelles`:"Aucune donnée sur la période"}</small></article>`;
+      });
+      $("channelCards").innerHTML=cards.join("");
+    }
+
+    function renderVersionChart() {
+      const versions=visibleVersions();
+      if(!versions.length) { $("versionChart").innerHTML='<div class="empty">Aucune version pour ces filtres.</div>'; return; }
+      const values=versions.map(v=>state.metric==="rate"?rate(v):v.errors), max=Math.max(1,...values);
+      $("versionChart").innerHTML=versions.map((v,i)=>{const height=Math.max(3,values[i]/max*100);return `<div class="bar-wrap"><span class="bar-value" style="bottom:calc(${height}% + 5px)">${state.metric==="rate"?fr(values[i]):fr(values[i],0)}</span><div class="bar" style="height:${height}%;--bar:${colors[v.channel]||colors["Non renseigné"]}"></div><span class="bar-label">${esc(v.name)}</span><span class="bar-channel">${esc(v.channel)}</span></div>`;}).join("");
+      $("chartSubtitle").textContent=state.metric==="rate"?"Erreurs dédupliquées pour 100 h autonomes":"Nombre d’erreurs dédupliquées";
+    }
+
+    function renderTopCodes() {
+      const current=visibleVersions().at(-1);
+      $("topContext").textContent=current?`${current.name} · ${current.channel}`:"Aucune version visible";
+      if(!current) { $("codeRanking").innerHTML='<div class="empty">Aucun code à afficher.</div>'; return; }
+      const rows=Object.entries(current.codes).filter(([code])=>code.toLowerCase().includes(state.codeSearch)).sort((a,b)=>b[1]-a[1]).slice(0,8);
+      const max=Math.max(1,...rows.map(([code])=>codeRate(current,code)));
+      $("codeRanking").innerHTML=rows.length?rows.map(([code])=>{const value=codeRate(current,code);return `<div class="code-row"><code>${esc(code)}</code><div class="track"><div class="fill" style="width:${value/max*100}%"></div></div><b>${fr(value)}</b></div>`;}).join(""):'<div class="empty">Aucun code correspondant.</div>';
+    }
+
+    function renderCoverage() {
+      const versions=visibleVersions().slice(-5).reverse(), max=Math.max(1,...versions.map(v=>v.hours));
+      $("coverage").innerHTML=versions.length?versions.map(v=>`<div class="coverage-item"><code>${esc(v.name)}</code><div class="track"><div class="fill" style="width:${v.hours/max*100}%"></div></div><span>${fr(v.hours)} h · ${v.robots} robots</span></div>`).join(""):'<div class="empty">Aucune couverture disponible.</div>';
+    }
+
+    function renderAttention() {
+      const versions=visibleVersions(), current=versions.at(-1), items=[];
+      if(current && current.robots<12) items.push(["!","Échantillon limité",`${current.name} repose sur ${current.robots} robots : interpréter les écarts avec prudence.`]);
+      const historical=state.versions.filter(v=>v.lastSeen && (Date.now()-new Date(v.lastSeen).getTime())>45*DAY);
+      if(historical.length) items.push(["↺","Versions historiques",`${historical.map(v=>v.name).join(", ")} sans activité récente, conservées pour comparaison.`]);
+      items.push(["i","Canaux non renseignés","Les événements sans canal restent dans « Non renseigné » ; le canal n’est jamais déduit du numéro de version."]);
+      $("attention").innerHTML=items.slice(0,3).map(([mark,title,text])=>`<div class="attention"><span class="attention-mark">${mark}</span><div><strong>${esc(title)}</strong><small>${esc(text)}</small></div></div>`).join("");
+    }
+
+    function renderLifecycle() {
+      const now=Date.now();
+      $("lifecycle").innerHTML=state.versions.map(v=>{const historical=v.lastSeen && now-new Date(v.lastSeen).getTime()>45*DAY, present=v.hours>0;return `<tr><td><code>${esc(v.name)}</code></td><td>${esc(v.channel)}</td><td>${formatDateTime(v.lastSeen)}</td><td>${v.robots}</td><td>${v.parcels}</td><td><span class="badge ${present?"good":"neutral"}">${present?"Oui":"Non"}</span></td><td><span class="badge ${historical?"neutral":"good"}">${historical?"Historique":"Active"}</span></td></tr>`;}).join("") || '<tr><td colspan="7">Aucune version sur la période.</td></tr>';
+      $("syncBadge").textContent=state.live?`Synchro ${formatDateTime(state.updatedAt)}`:"Mode exemple";
+    }
+
+    function comparisonRows(base,target) {
+      if(!base||!target) return [];
+      return [...new Set([...Object.keys(base.codes),...Object.keys(target.codes)])].map(code=>{
+        const x=codeRate(base,code), y=codeRate(target,code), diff=y-x; let kind="stable",label="Stable",cls="neutral";
+        if(!base.codes[code]) {kind="new";label="Apparu";cls="bad";} else if(!target.codes[code]) {kind="gone";label="Disparu";cls="good";} else if(diff>.2) {kind="worse";label="Dégradé";cls="bad";} else if(diff<-.2) {kind="better";label="Amélioré";cls="good";}
+        return {code,x,y,diff,kind,label,cls};
+      }).sort((a,b)=>Math.abs(b.diff)-Math.abs(a.diff));
+    }
+
+    function renderCompare() {
+      const base=byName(state.base), target=byName(state.target);
+      if(!base||!target||!base.hours||!target.hours) { $("verdict").className="verdict bad"; $("verdict").innerHTML="<strong>Comparaison indisponible sur cette période</strong><span>Les deux versions doivent avoir une exposition autonome mesurée.</span>"; $("diffBars").innerHTML=""; $("changeTable").innerHTML=""; return; }
+      const baseRate=rate(base), targetRate=rate(target), delta=baseRate?((targetRate-baseRate)/baseRate*100):0, better=delta<0;
+      $("verdict").className=`verdict ${better?"good":"bad"}`;
+      $("verdict").innerHTML=`<strong>${better?"Amélioration":"Dégradation"} de ${fr(Math.abs(delta),0)} % du taux d’erreurs</strong><span>${esc(base.name)} → ${esc(target.name)} · ${formatDate(state.from)} au ${formatDate(state.to)}</span>`;
+      $("baseTitle").textContent=`${base.name} · ${base.channel}`; $("targetTitle").textContent=`${target.name} · ${target.channel}`;
+      $("baseRate").textContent=fr(baseRate); $("targetRate").textContent=fr(targetRate);
+      $("baseCoverage").textContent=`${fr(base.hours)} h · ${base.robots} robots · ${base.parcels} parcelles`;
+      $("targetCoverage").textContent=`${fr(target.hours)} h · ${target.robots} robots · ${target.parcels} parcelles`;
+      $("mainDelta").textContent=`${delta>0?"+":"−"}${fr(Math.abs(delta),0)} %`; $("mainDelta").style.color=better?"var(--green)":"var(--red)";
+      $("deltaLabel").textContent=better?"Amélioration":"Dégradation"; $("confidence").textContent=`Exposition cible ${fr(target.hours/Math.max(base.hours,.1))}× la référence`;
+      let rows=comparisonRows(base,target); if(state.commonOnly) rows=rows.filter(r=>r.kind!=="new"&&r.kind!=="gone");
+      const max=Math.max(1,...rows.flatMap(r=>[r.x,r.y]));
+      $("diffBars").innerHTML=rows.slice(0,10).map(r=>`<div class="diff-row"><code>${esc(r.code)}</code><div class="bar-pair"><div class="track"><div class="ref-fill" style="width:${r.x/max*100}%"></div></div><div class="track"><div class="target-fill" style="width:${r.y/max*100}%"></div></div></div><span>${fr(r.x)} → ${fr(r.y)}</span></div>`).join("") || '<div class="empty">Aucun code à comparer.</div>';
+      if(state.change!=="all") rows=rows.filter(r=>r.kind===state.change);
+      $("changeTable").innerHTML=rows.slice(0,12).map(r=>`<tr><td><code>${esc(r.code)}</code></td><td>${fr(r.x)}</td><td>${fr(r.y)}</td><td style="color:${r.diff<=0?"var(--green)":"var(--red)"}">${r.diff>0?"+":""}${fr(r.diff)}</td><td><span class="badge ${r.cls}">${r.label}</span></td></tr>`).join("") || '<tr><td colspan="5">Aucun changement dans cette catégorie.</td></tr>';
+    }
+
+    function render() { renderChips(); renderChannels(); renderVersionChart(); renderTopCodes(); renderCoverage(); renderAttention(); renderLifecycle(); renderCompare(); }
+
+    function switchTab(name) {
+      state.tab=name;
+      document.querySelectorAll(".tab").forEach(button=>{const active=button.dataset.tab===name;button.classList.toggle("active",active);button.setAttribute("aria-selected",String(active));});
+      $("overviewPanel").classList.toggle("hidden",name!=="overview"); $("comparePanel").classList.toggle("hidden",name!=="compare");
+    }
+
+    function debouncedLoad() { clearTimeout(reloadTimer); reloadTimer=setTimeout(()=>loadDashboard(),350); }
+
+    document.querySelectorAll(".tab").forEach(button=>button.addEventListener("click",()=>switchTab(button.dataset.tab)));
+    document.querySelectorAll("[data-metric]").forEach(button=>button.addEventListener("click",()=>{state.metric=button.dataset.metric;document.querySelectorAll("[data-metric]").forEach(x=>x.classList.toggle("active",x===button));renderVersionChart();}));
+    document.querySelectorAll("[data-change]").forEach(button=>button.addEventListener("click",()=>{state.change=button.dataset.change;document.querySelectorAll("[data-change]").forEach(x=>x.classList.toggle("active",x===button));renderCompare();}));
+    $("period").addEventListener("change",event=>{state.period=event.target.value;if(state.period!=="custom")setPresetDates(state.period);loadDashboard();});
+    $("dateFrom").addEventListener("change",event=>{state.from=event.target.value;if(state.from>state.to){state.to=state.from;$("dateTo").value=state.to;}state.period="custom";$("period").value="custom";loadDashboard();});
+    $("dateTo").addEventListener("change",event=>{state.to=event.target.value;if(state.to<state.from){state.from=state.to;$("dateFrom").value=state.from;}state.period="custom";$("period").value="custom";loadDashboard();});
+    $("channel").addEventListener("change",event=>{state.channel=event.target.value;render();});
+    $("rangeStart").addEventListener("change",event=>{state.rangeStart=event.target.value;render();});
+    $("rangeEnd").addEventListener("change",event=>{state.rangeEnd=event.target.value;render();});
+    $("robot").addEventListener("change",event=>{state.robot=event.target.value.trim();loadDashboard();});
+    $("robot").addEventListener("input",event=>{state.robot=event.target.value.trim();renderChips();debouncedLoad();});
+    $("parcel").addEventListener("change",event=>{state.parcel=event.target.value.trim();loadDashboard();});
+    $("parcel").addEventListener("input",event=>{state.parcel=event.target.value.trim();renderChips();debouncedLoad();});
+    $("baseVersion").addEventListener("change",event=>{state.base=event.target.value;renderCompare();});
+    $("targetVersion").addEventListener("change",event=>{state.target=event.target.value;renderCompare();});
+    $("commonOnly").addEventListener("change",event=>{state.commonOnly=event.target.checked;renderCompare();});
+    $("codeSearch").addEventListener("input",event=>{state.codeSearch=event.target.value.trim().toLowerCase();renderTopCodes();});
+    $("refreshButton").addEventListener("click",()=>loadDashboard({manual:true}));
+    $("resetButton").addEventListener("click",()=>{
+      Object.assign(state,{period:"90",channel:"all",robot:"",parcel:"",metric:"rate",codeSearch:"",commonOnly:false,change:"all"});
+      $("period").value="90"; $("channel").value="all"; $("robot").value=""; $("parcel").value=""; $("codeSearch").value=""; $("commonOnly").checked=false;
+      document.querySelectorAll("[data-metric]").forEach(x=>x.classList.toggle("active",x.dataset.metric==="rate")); document.querySelectorAll("[data-change]").forEach(x=>x.classList.toggle("active",x.dataset.change==="all"));
+      setPresetDates(90); loadDashboard();
+    });
+    document.addEventListener("visibilitychange",()=>{if(!document.hidden && Date.now()-new Date(state.updatedAt||0).getTime()>REFRESH_MS)loadDashboard();});
+
+    setPresetDates(90);
+    loadFilters();
+    loadDashboard();
+  })();
+  </script>
+</body>
+</html>
